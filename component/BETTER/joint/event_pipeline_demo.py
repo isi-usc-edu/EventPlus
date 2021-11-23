@@ -106,7 +106,9 @@ class BETTER_API:
                 ('B-GPE', 8), ('I-GPE', 9),
                 ('B-LOC', 10), ('I-LOC', 11),
                 ('B-FAC', 12), ('I-FAC', 13),
-                ('B-PER', 14), ('I-PER', 15)]
+                ('B-PER', 14), ('I-PER', 15),
+                ('B-MISC', 16), ('I-MISC', 17),
+                ]
                 )
         args._id_to_label_e_sent = OrderedDict([(v, k) for k, v in args._label_to_id_e_sent.items()])
 
@@ -162,9 +164,8 @@ class BETTER_API:
         # args.ner_weight=1.0
         model_ner = NERPrediction(
             model='dslim/bert-large-NER',
+            labels= args._id_to_label_e_sent
         )
-
-        args._id_to_label_e_sent = OrderedDict([(int(k), model_ner.model.config.id2label[k]) for k in model_ner.model.config.id2label.keys()])
 
         self.system = EventPipeline(args, model, model_t, model_ner)
         self.system.load(filename=os.path.join(args.base_dir, args.load_model_path), filename_t=os.path.join(args.base_dir, args.load_model_path_t), filename_ner=os.path.join(args.base_dir, args.load_model_path_ner))
