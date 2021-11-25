@@ -153,6 +153,18 @@ class EventPipeline(nn.Module):
             self.bias_tensor_t = self.bias_tensor_t.cuda()
             self.bias_tensor_a = self.bias_tensor_a.cuda()
 
+        # prepare the bert-large-case tokenzier required by the NER mdoel
+        MODELS = [(BertConfig, BertModel, BertTokenizer, 'bert-large-cased')]
+        for config_class, model_class, tokenizer_class, pretrained_weights in MODELS:
+            config = config_class.from_pretrained(pretrained_weights, output_hidden_states=True)
+            self.bert_tokenizer_cased = tokenizer_class.from_pretrained(pretrained_weights)
+
+        # prepare the bert-large-uncase tokenzier required by the tigger mdoel and argument model
+        MODELS = [(BertConfig, BertModel, BertTokenizer, 'bert-large-uncased')]
+        for config_class, model_class, tokenizer_class, pretrained_weights in MODELS:
+            config = config_class.from_pretrained(pretrained_weights, output_hidden_states=True)
+            self.bert_tokenizer_uncased = tokenizer_class.from_pretrained(pretrained_weights)
+
     def make_trigger_mask(self, argu_cands):
         '''
         The purpose is to set this constraint: If a position is entity, then
@@ -289,29 +301,8 @@ class EventPipeline(nn.Module):
         sent_ids = ['test_sample']
 
         # prepare the bert-large-case tokenzier required by the NER mdoel
-        # MODELS = [(BertConfig, BertModel, BertTokenizer, 'bert-large-cased')]
-        # for config_class, model_class, tokenizer_class, pretrained_weights in MODELS:
-        #     config = config_class.from_pretrained(pretrained_weights, output_hidden_states=True)
-        #     bert_tokenizer = tokenizer_class.from_pretrained(pretrained_weights)
-        # sent_bert_tokens, sent_bert_ids, orig_to_tok_map = bert_token(input_sent, bert_tokenizer)
-        # sents = torch.LongTensor(sent_bert_ids).unsqueeze(0)
-        # lengths = [len(input_sent)]
-        # bert_lengths = [len(sent_bert_ids)]
-        #
-        # # crf mask
-        # max_len = lengths[0]
-        # crf_mask = torch.arange(max_len).expand(len(lengths), max_len) < torch.LongTensor(lengths).unsqueeze(1)
-        # # bert mask
-        # bert_max_len = max(bert_lengths)
-        # bert_attn_mask = torch.arange(bert_max_len).expand(len(bert_lengths), bert_max_len) < torch.LongTensor(bert_lengths).unsqueeze(1)
-        # bert_attn_mask = bert_attn_mask.type(torch.FloatTensor)
-        #
-        # if self.args.cuda:
-        #     sents = sents.cuda()
-        #     bert_attn_mask = bert_attn_mask.cuda()
-        #     crf_mask = crf_mask.cuda()
 
-        # NER prediction #TODO
+        # NER prediction
         out_ner = self.best_model_ner.analyze(input_sent)
         lengths = [len(input_sent)]
         print(out_ner)
@@ -325,11 +316,7 @@ class EventPipeline(nn.Module):
 
 
         # prepare the bert-large-uncase tokenzier required by the tigger mdoel and argument model
-        MODELS = [(BertConfig, BertModel, BertTokenizer, 'bert-large-uncased')]
-        for config_class, model_class, tokenizer_class, pretrained_weights in MODELS:
-            config = config_class.from_pretrained(pretrained_weights, output_hidden_states=True)
-            bert_tokenizer = tokenizer_class.from_pretrained(pretrained_weights)
-        sent_bert_tokens, sent_bert_ids, orig_to_tok_map = bert_token(input_sent, bert_tokenizer)
+        sent_bert_tokens, sent_bert_ids, orig_to_tok_map = bert_token(input_sent, self.bert_tokenizer_uncased)
         sents = torch.LongTensor(sent_bert_ids).unsqueeze(0)
         lengths = [len(input_sent)]
         bert_lengths = [len(sent_bert_ids)]
